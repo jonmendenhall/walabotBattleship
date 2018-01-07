@@ -75,7 +75,7 @@ firebase = pyrebase.initialize_app({
 def handle(msg):
 	global scanning
 	now = msg["data"] != 0													# whether the program should be scanning or not based on value at "/PLAYER/mode" in database
-	print(moveCursor(0, 2) + CLEARLINE + "Scanning: ", end="")				# print to screen "Scanning: False" (RED) or "Scanning: True" (GREEN)
+	print(moveCursor(0, 3) + CLEARLINE + "Scanning: ", end="")				# print to screen "Scanning: False" (RED) or "Scanning: True" (GREEN)
 	print((Fore.GREEN if now else Fore.RED) + Style.BRIGHT + str(now))
 
 	if now != scanning:									# only handle changes in scanning state, not changes in value
@@ -125,6 +125,7 @@ class Walabot:
 			print(".", end="")
 
 		print(CLEARSCREEN + moveCursor(0,1) + "Calibrated: " + Fore.CYAN + Style.BRIGHT + "True")	# done calibrating
+		print(Style.RESET_ALL + "Player: " + Fore.YELLOW + Style.BRIGHT + str(player))
 
 	def targets(self):
 		bot.Trigger()
@@ -157,7 +158,7 @@ def scan():
 	global scanning, lastSector, lastCount
 
 	# print lastSector to screen
-	print(moveCursor(0,3) + CLEARLINE + "Sector: %s%s" % (Style.BRIGHT, (Fore.RED + "None") if lastSector == "" else (Fore.YELLOW + lastSector)))
+	print(moveCursor(0,4) + CLEARLINE + "Sector: %s%s" % (Style.BRIGHT, (Fore.RED + "None") if lastSector == "" else (Fore.YELLOW + lastSector)))
 	
 	# only upload new positions while scanning (while "/PLAYER/mode" == 1 or 2)
 	while scanning:
@@ -189,7 +190,7 @@ def scan():
 				if sector != lastSector or lastCount == 0:
 
 					# print position to screen
-					print(moveCursor(0,3) + CLEARLINE + "Sector: %s" % (Fore.YELLOW + Style.BRIGHT + sector))
+					print(moveCursor(0,4) + CLEARLINE + "Sector: %s" % (Fore.YELLOW + Style.BRIGHT + sector))
 
 					# upload position
 					firebase.child("/%d/sector" % (player)).set(sector)
@@ -203,7 +204,7 @@ def scan():
 			elif lastCount > 0:
 
 				# print "Sector: None" to screen
-				print(moveCursor(0,3) + CLEARLINE + "Sector: %s" % (Fore.RED + Style.BRIGHT + "None"))
+				print(moveCursor(0,4) + CLEARLINE + "Sector: %s" % (Fore.RED + Style.BRIGHT + "None"))
 
 			# update lastCount with count
 			lastCount = count
