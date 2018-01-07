@@ -6,7 +6,3 @@ rm walabot.deb
 echo "[Installing required Python libraries]"
 python3 -m pip install WalabotAPI --no-index --find-links="/usr/share/walabot/python/"
 python3 -m pip install pyrebase colorama
-
-echo "[Packaging Lambda function]"
-cd lambda; \
-zip -r ../lambda.zip *
