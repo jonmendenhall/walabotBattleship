@@ -1,6 +1,7 @@
 echo "[Downloading Walabot library]"
 curl -o walabot.deb "https://walabot.com/WalabotInstaller/Latest/walabot_maker_1.0.34_raspberry_arm32.deb"
 sudo dpkg -i walabot.deb
+rm walabot.deb
 
 echo "[Installing required Python libraries]"
 python3 -m pip install WalabotAPI --no-index --find-links="/usr/share/walabot/python/"

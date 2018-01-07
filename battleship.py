@@ -1,3 +1,14 @@
+# ----------------------------------
+# Variables needed for configuration
+# ----------------------------------
+
+player = 1								# which player is this Raspberry Pi + Walabot playing as
+minAngle, maxAngle = -50, 50			# scanning angle boundaries of Walabot (degrees)
+minDistance, maxDistance = 10, 300		# scanning distance boundaries of Walabot (cm)
+
+
+
+
 # ------------------------------------------------------------------
 # Import and initialize library for drawing colored text to terminal
 # ------------------------------------------------------------------
@@ -46,17 +57,6 @@ import math
 import time
 import threading
 import random
-
-
-
-
-# ----------------------------------
-# Variables needed for configuration
-# ----------------------------------
-
-player = 1								# which player is this Raspberry Pi + Walabot playing as
-minAngle, maxAngle = -50, 50			# scanning angle boundaries of Walabot (degrees)
-minDistance, maxDistance = 10, 300		# scanning distance boundaries of Walabot (cm)
 
 
 
