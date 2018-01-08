@@ -316,7 +316,9 @@ const attackHandlers = Alexa.CreateStateHandler(states.attack, {
 const playAgainHandlers = Alexa.CreateStateHandler(states.playAgain, {
 	"AMAZON.YesIntent": function() {
 		// call the first method when starting the skill ("Do you want to play...")
-		this.emit("Unhandled")
+		this.handler.state = ""
+		delete this.attributes.STATE
+		this.emitWithState("NewSession")
 	},
 	"AMAZON.NoIntent": function() {
 		// player does not want to play again
