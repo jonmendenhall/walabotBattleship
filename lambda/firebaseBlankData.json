@@ -1,0 +1,20 @@
+{
+	"1": {
+		"alexaHealth": 2,
+		"alexaSector": "north",
+		"health": 2,
+		"mode": 0,
+		"sector": "north"
+	},
+	"2": {
+		"alexaHealth": 2,
+		"alexaSector": "north",
+		"health": 2,
+		"mode": 0,
+		"sector": "north"
+	},
+	"multiplayer": {
+		"hit": false,
+		"turn": 0
+	}
+}

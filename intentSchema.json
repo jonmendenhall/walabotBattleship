@@ -1,0 +1,37 @@
+{
+  "intents": [
+    {
+      "slots": [
+        {
+          "name": "mode",
+          "type": "MODE"
+        }
+      ],
+      "intent": "ModeIntent"
+    },
+    {
+      "slots": [
+        {
+          "name": "player",
+          "type": "PLAYER"
+        }
+      ],
+      "intent": "PlayerIntent"
+    },
+    {
+      "slots": [
+        {
+          "name": "sector",
+          "type": "SECTOR"
+        }
+      ],
+      "intent": "AttackIntent"
+    },
+    {
+      "intent": "AMAZON.YesIntent"
+    },
+    {
+      "intent": "AMAZON.NoIntent"
+    }
+  ]
+}

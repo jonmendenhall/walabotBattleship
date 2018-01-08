@@ -1,0 +1,12 @@
+ModeIntent {mode}
+ModeIntent play {mode}
+ModeIntent start {mode}
+ModeIntent do {mode}
+PlayerIntent player {player}
+PlayerIntent I am player {player}
+PlayerIntent play as player {player}
+AttackIntent {sector}
+AttackIntent fire at {sector}
+AttackIntent hit {sector}
+AttackIntent shoot {sector}
+AttackIntent aim {sector}

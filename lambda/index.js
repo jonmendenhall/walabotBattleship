@@ -4,7 +4,7 @@
 
 const Alexa = require("alexa-sdk")
 const firebase = require("./firebase.js")
-
+const blueprintData = require("./firebaseBlankData.json")
 
 
 
@@ -13,16 +13,18 @@ const firebase = require("./firebase.js")
 // ---------------------------------------
 
 firebase.host = "walabotbattleship.firebaseio.com"			// PROJECT.firebaseio.com
-const alexaAccuracy = 0.35									// how accurate alexa is in single player against you (%)
+const s3bucket = "walabotbattleship"						// the name of your S3 bucket where sounds are stored
+
+const alexaAccuracy = 0.35									// how accurate alexa is in single player against you 0% - 100%
 const sectors = ["north", "east", "south", "west"]			// possible sectors to use in game
 
 // SOUNDS FROM ZAPSPLAT AND SOUNDBIBLE
-const audioRadar = '<audio src="https://s3.amazonaws.com/walabotbattleship/radar.mp3"/>'			// a radar noise
-const audioSiren = '<audio src="https://s3.amazonaws.com/walabotbattleship/siren.mp3"/>'			// a siren noise
-const audioWhistle = '<audio src="https://s3.amazonaws.com/walabotbattleship/whistle.mp3"/>'		// a whistle noise
-const audioExplosion = '<audio src="https://s3.amazonaws.com/walabotbattleship/explosion.mp3"/>'	// an explosion noise
-const audioCannon = '<audio src="https://s3.amazonaws.com/walabotbattleship/cannon.mp3"/>'			// a cannon noise
-const audioSplash = '<audio src="https://s3.amazonaws.com/walabotbattleship/splash.mp3"/>'			// a splash noise
+const audioRadar = '<audio src="https://s3.amazonaws.com/' + s3bucket + '/radar.mp3"/>'			// a radar noise
+const audioSiren = '<audio src="https://s3.amazonaws.com/' + s3bucket + '/siren.mp3"/>'			// a siren noise
+const audioWhistle = '<audio src="https://s3.amazonaws.com/' + s3bucket + '/whistle.mp3"/>'		// a whistle noise
+const audioExplosion = '<audio src="https://s3.amazonaws.com/' + s3bucket + '/explosion.mp3"/>'	// an explosion noise
+const audioCannon = '<audio src="https://s3.amazonaws.com/' + s3bucket + '/cannon.mp3"/>'			// a cannon noise
+const audioSplash = '<audio src="https://s3.amazonaws.com/' + s3bucket + '/splash.mp3"/>'			// a splash noise
 
 // makes speech have delays to sound better
 const break1 = '<break time="0.5s"/>'	// 0.5s delay
@@ -55,31 +57,37 @@ const modeHandlers = {
 
 		// get data from database
 		firebase.get("/").then((data) => {
-			// this person could be player1 or player2	
-			var player1 = data[1].mode == 0
-			var player2 = data[2].mode == 0
+			var promises = []
+			if(data == null)
+				promises = [firebase.put("/", data = blueprintData)]
+			
+			Promise.all(promises).then(() => {
+				// this person could be player1 or player2	
+				var player1 = data[1].mode == 0
+				var player2 = data[2].mode == 0
 
-			// if either, ask who it is
-			if(player1 && player2) {
-				const prompt = "Are you player 1, or 2?"
-				this.handler.state = states.playerSelect
-				this.emit(":ask", prompt, prompt)
-			} else if(player1 || player2) {
-				// we know which one it has to be (2 options, and 1 is already taken...)
-				this.attributes.player = player1 ? 1 : 2
+				// if either, ask who it is
+				if(player1 && player2) {
+					const prompt = "Are you player 1, or 2?"
+					this.handler.state = states.playerSelect
+					this.emit(":ask", prompt, prompt)
+				} else if(player1 || player2) {
+					// we know which one it has to be (2 options, and 1 is already taken...)
+					this.attributes.player = player1 ? 1 : 2
 
-				// check if that player is not playing
-				if(data[this.attributes.player].mode == 0) {
-					// start a game
-					startGame(this, data, mode)
+					// check if that player is not playing
+					if(data[this.attributes.player].mode == 0) {
+						// start a game
+						startGame(this, data, mode)
+					} else {
+						// that player is playing, tell the person
+						this.emit(":tell", "Hmmm, it looks like player" + this.attributes.player + " is already playing. Try again later.")
+					}
 				} else {
-					// that player is playing, tell the person
-					this.emit(":tell", "Hmmm, it looks like player" + this.attributes.player + " is already playing. Try again later.")
+					// neither player is available to play as
+					this.emit(":tell", "Hmmm, it looks like both players are already playing. Try again later.")
 				}
-			} else {
-				// neither player is available to play as
-				this.emit(":tell", "Hmmm, it looks like both players are already playing. Try again later.")
-			}
+			})
 		})
 
 	},
@@ -154,11 +162,21 @@ const attackHandlers = Alexa.CreateStateHandler(states.attack, {
 							self.emit(":ask", prompt, prompt)
 						})
 					} else {
+
+						// Promise.all( [first, second] ).then((values) => {
+						// 		first response = values[0]
+						//		second response = values[1]
+						// })
+
 						// the player is the 2nd player, wait for 1st player to attack
-						waitForTurn().then((hit) => {
+						Promise.all([directiveSpeak(self, "Go to a sector to defend." + audioRadar), waitForTurn()]).then(([, hit]) => {
 							// handle 1st player's attack
-							handleAttack(self, data[self.attributes.player].health, hit)
+							handleAttack(self, data[self.attributes.player], hit)
 						})
+
+
+
+
 					}
 				} else {
 					// it is the next turn, player wants to attack a sector
@@ -192,8 +210,8 @@ const attackHandlers = Alexa.CreateStateHandler(states.attack, {
 						speech += " Congratulations, you defeated the enemy!"
 						const prompt = "Would you like to play again?"
 
-						// notify the database that the player was hit, set turn to 0 for the next multiplayer game
-						nextTurn(data, true, 0).then(() => {
+						// set player's mode to 0, notify the database that the enemy was hit, set turn to 0 for the next multiplayer game
+						Promise.all([firebase.put("/" + self.attributes.player + "/mode", 0), nextTurn(data, true, 0)]).then(() => {
 							// tell speech and ask player the prompt
 							self.handler.state = states.playAgain
 							self.emit(":ask", speech + prompt, prompt)
@@ -206,7 +224,7 @@ const attackHandlers = Alexa.CreateStateHandler(states.attack, {
 							return waitForTurn()
 						}).then((hit) => {
 							// the enemy fired at us, handle the attack, based on if they hit us
-							handleAttack(self, data[self.attributes.player].health, hit)
+							handleAttack(self, data[self.attributes.player], hit)
 						})
 					}
 				}
@@ -269,14 +287,11 @@ const attackHandlers = Alexa.CreateStateHandler(states.attack, {
 
 				if(enemySunk && playerSunk) {
 					// the enemy sunk AND the player sunk (TIE)
-					speech += "After a long battle at sea, you sunk eachothers ships. Good effort. "
+					speech += "After a long battle at sea, you sunk eachothers ships. "
 				} else if(enemySunk) {
 					// the enemy sunk (WIN)
 					speech += "Congratulations, you defeated the enemy! "
-				} else if(playerSunk) {
-					// player sunk (LOSE)
-					speech += "You were defeated by the enemy. "
-				} else {
+				} else if(!playerSunk) {
 					// neither player sunk, game is not over
 					game.mode = 1
 					// ask player where to attack
@@ -387,6 +402,8 @@ function startGame(self, data, mode) {
 
 		// you are the first player in multiplayer if "/multiplayer/turn" == 0
 		self.attributes.firstPlayer = data.multiplayer.turn == 0
+		if(self.attributes.firstPlayer)
+			data.multiplayer.hit = false
 
 		// notifys the first player that you joined
 		data.multiplayer.turn++
@@ -423,7 +440,7 @@ function waitForTurn() {
 	return new Promise((resolve, reject) => {
 		// listen for changes to "/multiplayer"
 		firebase.listen("/multiplayer", (event) => {
-			// resolves when "/multiplayer/turn" is changed
+			// resolves when "/multiplayer/" is changed
 			if(event.index > 0 && event.path != "/hit") {
 				resolve(event.data.hit)
 			}
@@ -447,21 +464,25 @@ function nextTurn(data, hit, turn) {
 
 // creates the speech for when there is incoming fire
 
-function handleAttack(self, health, hit) {
+function handleAttack(self, player, hit) {
 	// all attack speeches start with "Incoming fire! *BOMB DROP WHISTLE*"
 	var speech = "Incoming fire!" + break1 + audioWhistle
 	var sunk = false
 
+	// speech += wasHit ? "true " : "false "
+
+	// console.log("Hit: " + hit)
 	// check if the player was hit
 	if(hit) {
 		// add an explosion to the output speech
 		speech += audioExplosion + break1
 
 		// decrease player health and check if they have no more health
-		if(--health == 0) {
+		if(--player.health == 0) {
 			// add a sunk message to the speech
 			sunk = true
 			speech += "The enemy sunk your ship. "
+			player.mode = 0
 		} else {
 			// the player didn't sink, but they will next hit
 			speech += "The hull can not take another hit like that. "
@@ -472,7 +493,7 @@ function handleAttack(self, health, hit) {
 	}
 
 	// update database with new player health for this turn
-	firebase.put("/" + self.attributes.player + "/health", health).then(() => {
+	firebase.put("/" + self.attributes.player, player).then(() => {
 		if(sunk) {
 			// the player sunk
 			const prompt = "Would you like to play again?"
