@@ -1,3 +1,0 @@
-echo "[Packaging Lambda function]"
-cd lambda; \
-zip -r ../lambda.zip *
